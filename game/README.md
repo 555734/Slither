@@ -56,9 +56,23 @@ godot --path game --resolution 720x1280 --script res://tests/screenshot.gd -- 1 
 
 ## Android / iOS への書き出し
 
-縦画面固定、描画方式は Compatibility（OpenGL ES 3）に設定済みです。書き出しのプリセットは含めていません。
+縦画面固定、描画方式は Compatibility（OpenGL ES 3）です。`export_presets.cfg` に Android のプリセットがあります。
 
-- **Android**：Godot のエクスポートテンプレート、JDK 17、Android SDK を用意し、エディタ設定で SDK とデバッグ用キーストアを指定してから、「プロジェクト → エクスポート」で Android のプリセットを追加します。
+| 項目 | 値 |
+|---|---|
+| パッケージ名 | `com.imomushi.oshirimade` |
+| バージョン | 0.1.0-mvp（versionCode 1） |
+| CPU | arm64-v8a、armeabi-v7a |
+| 署名 | デバッグ用キーストア（テスト配布用。ストア公開には使えない） |
+| 書き出し方式 | テンプレート APK（Gradle ビルドは使わない） |
+
+書き出し：`GODOT=/path/to/godot game/tools/build_android.sh` → `build/oshiri-mvp-debug.apk`。
+事前準備（エクスポートテンプレート、JDK、Android SDK、エディタ設定）はスクリプト冒頭のコメントに書いてあります。
+
+**端末へのインストール**：APK を端末にコピーして開く（「提供元不明のアプリ」の許可が必要）、または `adb install build/oshiri-mvp-debug.apk`。
+
+- デバッグ署名は書き出した環境ごとに異なります。別の環境で書き出した APK で上書きインストールすると署名の不一致で失敗するので、先にアンインストールしてください。
+- ストアに出す場合は、リリース用のキーストアを作って `--export-release` で書き出します（キーストアはリポジトリに入れないこと）。
 - **iOS**：macOS と Xcode、Apple Developer Program への登録が必要です（企画書 10.4）。
 
 ## ファイル構成

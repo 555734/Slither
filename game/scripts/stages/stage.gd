@@ -51,6 +51,11 @@ func sign_at(x: float, y: float, text: String, w: float = 120.0) -> void:
 	add_trap(SignBoard.new()).setup(Vector2(x, y), text, w)
 
 
+## 同じ罠で何度も失敗したときに出すヒント（企画書 6.7）。[キー, 文] を返す。無ければ空配列。
+func hint_for(_info: Dictionary) -> Array:
+	return []
+
+
 func set_respawn(p: Vector2, d: Vector2) -> void:
 	respawn_pos = p
 	respawn_dir = d

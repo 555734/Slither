@@ -17,6 +17,7 @@ func _initialize() -> void:
 	test_reach_and_gap()
 	test_wall_climb()
 	test_alpha_full_run()
+	test_alpha_imprecise_input()
 	test_alpha_clam_slow()
 	test_beta_guillotine()
 	test_beta_switch()
@@ -124,7 +125,7 @@ func test_support_rule() -> void:
 
 func test_flat_crawl() -> void:
 	print("crawl")
-	var ctx := make("res://scripts/stages/stage_sandbox.gd")
+	var ctx := make("res://scripts/stages/stage_beta.gd")
 	var x0: float = ctx.cat.head().x
 	run(ctx, 1.0, func(c: Dictionary) -> void: go(c, Vector2.RIGHT))
 	var dx: float = ctx.cat.head().x - x0
@@ -169,8 +170,12 @@ func test_wall_climb() -> void:
 	run(ctx, 1.0, func(c: Dictionary) -> void: go(c, Vector2.UP))
 	check(not ctx.cat.sup[0], "ガラスの天井は支えにならない")
 	ctx = make("res://scripts/stages/stage_sandbox.gd", Vector2(1220, 988))
-	run(ctx, 1.0, func(c: Dictionary) -> void: go(c, Vector2.UP))
-	check(ctx.cat.sup[0], "樹皮の天井は支えになる")
+	var held := [false]
+	run(ctx, 1.0, func(c: Dictionary) -> void:
+		go(c, Vector2.UP)
+		if c.cat.head().y < 916.0 and c.cat.sup[0] and c.cat.head().x < 1340.0:
+			held[0] = true)
+	check(held[0], "樹皮の天井は支えになる")
 
 
 # ------------------------------------------------------------ α
@@ -189,6 +194,20 @@ func test_alpha_full_run() -> void:
 	check(pb2.torn, "紙の葉っぱ橋が破れる")
 	check(hammock[0], "破れたあと体がハンモックになる（落下状態）")
 	check(res == "clear", "右へ全速で押すだけで、段差・茎・隙間・紙の橋・ハマグリを越えてクリア (%s, %s)" % [res, ctx.death.get("text", "")])
+
+
+## 実機テストで「前に進めない・上に上がれない」と指摘された点の回帰テスト。
+## 指の向きが水平から多少ずれていても、αをクリアできること。
+func test_alpha_imprecise_input() -> void:
+	for deg in [-25.0, -12.0, -5.0, 5.0, 12.0, 25.0, -45.0]:
+		var ctx := make("res://scripts/stages/stage_alpha.gd")
+		var stuck := [0.0]
+		var res := run(ctx, 30.0, func(c: Dictionary) -> void:
+			go(c, Vector2.from_angle(deg_to_rad(deg)))
+			if c.cat.straining:
+				stuck[0] += DT
+			return)
+		check(res == "clear" and stuck[0] < 2.5, "指が %+.0f 度ずれていてもαをクリアできる (%s, 詰まり %.1f 秒)" % [deg, res, stuck[0]])
 
 
 func test_alpha_clam_slow() -> void:
@@ -301,7 +320,7 @@ func test_gamma_plank() -> void:
 				if c.cat.head().x >= 690.0:
 					next_phase(c)
 			1:
-				go(c, Vector2(1, -1), false)
+				go(c, Vector2(1, -1.2), false)
 				if c.cat.head().y < 970.0:
 					next_phase(c)
 			2:

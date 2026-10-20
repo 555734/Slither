@@ -54,7 +54,7 @@ static var always_slow: bool = false
 ## 見た目と当たり判定（調整対象外）
 const BODY_RADIUS := 12.0
 const HIT_RADIUS := 9.0
-const CONTACT_MARGIN := 3.0
+const CONTACT_MARGIN := 4.0
 const GRAVITY := 1400.0
 
 

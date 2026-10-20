@@ -163,27 +163,118 @@ func _crawl(dt: float) -> void:
 		else:
 			trail.restore(snap)
 			if crule.head_run > Params.reach and not in_back:
-				# 首を伸ばせる限界。押し続けると手が滑って落ちる
-				straining = true
-				strain_t += dt
-				if strain_t >= Params.strain_letgo:
-					_enter_fall(0.35)
-					return
+				var body_dir := (seg[0] - seg[1]).normalized() if n > 1 else Vector2.from_angle(heading)
+				var intent := in_dir.dot(body_dir)
+				if intent < -0.3:
+					# 首を伸ばしきった状態で後ろ向きに引いたら、自動で来た道を戻る
+					_try_retreat(dt)
+				elif _try_droop(dt):
+					pass  # 伸ばしきった首が下に垂れて、床に届いた
+				elif intent > 0.3:
+					# 前へ押し続けると、手が滑って落ちる
+					straining = true
+					strain_t += dt
+					if strain_t >= Params.strain_letgo:
+						_enter_fall(0.35)
+						return
+				else:
+					straining = true
 	else:
 		straining = false
 		strain_t = maxf(0.0, strain_t - dt * 2.0)
 	trail.trim(maxf(body_len() * 3.0, 400.0))
 
 
-## 頭を want だけ動かす。面に当たったら面に沿って滑らせる（壁登り・天井歩き）。
+## 首を伸ばしきったとき、頭を下に垂らして支えに届くなら、そのまま進ませる。
+func _try_droop(dt: float) -> bool:
+	var slow := not in_fast or Params.always_slow
+	var spd := Params.speed_slow if slow else Params.speed_fast
+	var dd := Vector2(in_dir.x, absf(in_dir.y) + 0.8).normalized()
+	var snap := trail.snapshot()
+	var np := _move_head(trail.head, dd * spd * dt)
+	if np.distance_to(trail.head) < 0.01:
+		return false
+	trail.move_head(np)
+	var cand := _compute_segments()
+	var cflags := _support_flags(cand)
+	var crule := SupportRule.evaluate_default(cflags[0])
+	if not crule.ok:
+		trail.restore(snap)
+		return false
+	last_seg = seg
+	seg = cand
+	sup = cflags[0]
+	sup_n = cflags[1]
+	rule = crule
+	moving = true
+	straining = false
+	strain_t = 0.0
+	return true
+
+
+func _last_support_normal() -> Vector2:
+	for i in n:
+		if i < sup.size() and sup[i]:
+			return sup_n[i]
+	return Vector2.ZERO
+
+
+func _try_retreat(dt: float) -> void:
+	var snap := trail.snapshot()
+	if not trail.retreat(Params.speed_slow * dt, body_len()):
+		return
+	var cand := _compute_segments()
+	var cflags := _support_flags(cand)
+	var crule := SupportRule.evaluate_default(cflags[0])
+	if not crule.ok:
+		trail.restore(snap)
+		return
+	last_seg = seg
+	seg = cand
+	sup = cflags[0]
+	sup_n = cflags[1]
+	rule = crule
+	moving = true
+	straining = false
+	strain_t = 0.0
+
+
+## 頭を want だけ動かす。指の向きが多少ずれていても、体は面に吸い付いて這う。
+## 1) 支えている面から少し離れるだけの入力（約49度未満）は、面に沿った移動にする
+## 2) 縦方向に動かしたいとき、近くにつかめる壁があれば寄せる
+## 3) つかめる壁に押し付けたら、はっきり下向きでない限り上へ登る
 func _move_head(p: Vector2, want: Vector2) -> Vector2:
 	var r := Params.BODY_RADIUS
-	var res := world.push_out(p + want, r)
-	if not res.hit:
-		return p + want
-	var nrm: Vector2 = res.normal
+	var spd := want.length()
 	var d := want.normalized()
+	var sn := world.support_normal(p, r)
+	var lifting := true
+	if sn != Vector2.ZERO:
+		var away := d.dot(sn)
+		if away > 0.0 and away < 0.75:
+			d = (d - sn * away).normalized()
+		lifting = d.dot(sn) >= 0.75
+	else:
+		# 空中に首を伸ばしているとき、床から来たなら、わずかな上向きの入力では水平を保つ
+		var base_n := _last_support_normal()
+		var ceiling_near := world.is_supported(p + Vector2(0.0, -14.0), r)
+		if base_n.y < -0.5 and not ceiling_near:
+			var up := d.dot(base_n)
+			if up > 0.0 and up < 0.5:
+				d = (d - base_n * up).normalized()
+	if lifting and absf(d.y) > 0.6:
+		var toward := world.nearby_grip_wall(p, r, 40.0)
+		if toward != Vector2.ZERO and d.dot(toward) > -0.3:
+			d = (d + toward * 0.7).normalized()
+	var res := world.push_out(p + d * spd, r)
+	if not res.hit:
+		return p + d * spd
+	var nrm: Vector2 = res.normal
 	if -d.dot(nrm) > 0.2:
+		if res.grip and absf(nrm.x) >= 0.5:
+			# 壁に軽く押し付けたまま縦に動かす（壁から離れないように）
+			var climb := Vector2(0.0, 1.0 if d.y > 0.5 else -1.0)
+			return world.push_out(res.pos + climb * spd - Vector2(signf(nrm.x), 0.0) * 2.0, r).pos
 		var t := Vector2(-nrm.y, nrm.x)
 		var along := d.dot(t)
 		var sgn := signf(along)
@@ -192,7 +283,7 @@ func _move_head(p: Vector2, want: Vector2) -> Vector2:
 			for k in [6.0, 12.0, 18.0, 24.0]:
 				for s2 in [1.0, -1.0]:
 					if not world.push_out(p + t * s2 * k + d * 3.0, r).hit:
-						return world.push_out(p + t * s2 * want.length(), r).pos
+						return world.push_out(p + t * s2 * spd, r).pos
 			if absf(nrm.y) > 0.7:
 				# 床・天井に真正面から当たったら、それまで進んでいた向きに滑る
 				var last := trail.pts[trail.pts.size() - 1] if trail.pts.size() > 0 else p
@@ -200,12 +291,9 @@ func _move_head(p: Vector2, want: Vector2) -> Vector2:
 				if absf(moved) < 0.01:
 					return res.pos
 				sgn = signf(moved)
-			elif res.grip:
-				sgn = -1.0 if t.y > 0.0 else 1.0  # つかめる壁に真正面から当たったら上へ
 			else:
-				return res.pos  # ガラスなどは登れない
-		var res2 := world.push_out(p + t * sgn * want.length(), r)
-		return res2.pos
+				return res.pos  # ガラスなど、つかめない壁は登れない
+		return world.push_out(p + t * sgn * spd, r).pos
 	return res.pos
 
 

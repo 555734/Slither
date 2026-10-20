@@ -17,6 +17,8 @@ var title_label: Label
 var miss_label: Label
 var death_label: Label
 var toast_label: Label
+var hint_panel: PanelContainer
+var hint_label: Label
 var clear_panel: PanelContainer
 var clear_label: Label
 var next_button: Button
@@ -83,6 +85,26 @@ func build(title: String, has_next: bool) -> void:
 	toast_label.visible = false
 	root.add_child(toast_label)
 
+	hint_panel = PanelContainer.new()
+	hint_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	hint_panel.offset_top = 120
+	hint_panel.offset_left = 16
+	hint_panel.offset_right = -16
+	var hs := StyleBoxFlat.new()
+	hs.bg_color = Color(1, 0.97, 0.8, 0.92)
+	hs.set_corner_radius_all(14)
+	hs.set_content_margin_all(14)
+	hint_panel.add_theme_stylebox_override("panel", hs)
+	hint_label = Label.new()
+	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint_label.add_theme_font_size_override("font_size", 26)
+	hint_label.add_theme_color_override("font_color", Color("4e342e"))
+	hint_panel.add_child(hint_label)
+	hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_panel.visible = false
+	root.add_child(hint_panel)
+
 	clear_panel = PanelContainer.new()
 	clear_panel.set_anchors_preset(Control.PRESET_CENTER)
 	clear_panel.custom_minimum_size = Vector2(560, 0)
@@ -148,6 +170,15 @@ func show_death(part: String, text: String) -> void:
 
 func hide_death() -> void:
 	death_label.visible = false
+
+
+func show_hint(text: String) -> void:
+	hint_label.text = "ヒント：" + text
+	hint_panel.visible = true
+
+
+func hide_hint() -> void:
+	hint_panel.visible = false
 
 
 func toast(text: String) -> void:

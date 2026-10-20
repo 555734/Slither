@@ -36,3 +36,14 @@ func build() -> void:
 	block(5200, 880, 5300, 940)
 	block(5300, 0, 5400, 1500)
 	add_trap(BurrowGoal.new()).setup(Rect2(4910, 880, 290, 60))
+
+
+func hint_for(info: Dictionary) -> Array:
+	match info.cause:
+		"ギロチン":
+			return ["guillotine", "頭だけ赤い光に入れたら、すぐ右下の↩で後ずさり。刃が床に沈んでいる間に通ろう"]
+		"大玉", "トゲ":
+			return ["boulder", "スイッチは尻尾が離れた瞬間に動く。大玉が来る前に、天井の細い穴へ全身で逃げ込もう"]
+		"ハサミムシ":
+			return ["earwig", "指を離して止まると後ろが見える。止まっていれば、ハサミムシはあきらめて帰る"]
+	return []

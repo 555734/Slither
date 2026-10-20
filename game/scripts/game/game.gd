@@ -25,6 +25,8 @@ var life_t := 0.0
 var dying_t := 0.0
 var skip_requested := false
 var clam_deaths := 0
+var hint_counts := {}
+const HINT_AFTER := 3
 ## デモ・スクリーンショット用：設定されていればタッチ入力の代わりに呼ばれる
 var autopilot := Callable()
 
@@ -79,6 +81,8 @@ func restart_stage() -> void:
 	deaths = 0
 	elapsed = 0.0
 	clam_deaths = 0
+	hint_counts.clear()
+	hud.hide_hint()
 	graves.clear_all()
 	hud.hide_clear()
 	respawn()
@@ -172,6 +176,12 @@ func _on_died(info: Dictionary) -> void:
 		"index": info.index, "x": snappedf(info.pos.x, 1.0), "y": snappedf(info.pos.y, 1.0),
 		"t_since_respawn": snappedf(life_t, 0.01), "deaths": deaths,
 	})
+	var hint: Array = stage.hint_for(info)
+	if hint.size() == 2:
+		hint_counts[hint[0]] = hint_counts.get(hint[0], 0) + 1
+		if hint_counts[hint[0]] >= HINT_AFTER:
+			hud.show_hint(hint[1])
+			GameLog.write({"event": "hint", "stage": stage.stage_id, "key": hint[0], "deaths": deaths})
 	if info.cause == "ハマグリ":
 		clam_deaths += 1
 		if clam_deaths >= 2:

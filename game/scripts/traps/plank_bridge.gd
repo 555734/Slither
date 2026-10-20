@@ -30,7 +30,8 @@ func reset() -> void:
 func tick(_dt: float, cat: Caterpillar) -> void:
 	if broken or not cat.is_alive():
 		return
-	on_count = cat.count_on_top(rect)
+	# 板の端の継ぎ目に乗っている節は数えない
+	on_count = cat.count_on_top(rect.grow_individual(-4.0, 0.0, -4.0, 0.0))
 	if on_count > capacity:
 		broken = true
 		solid.fall_spin = 0.6

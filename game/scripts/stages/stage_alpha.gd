@@ -29,3 +29,9 @@ func build() -> void:
 	block(3100, 700, 3200, 760)
 	block(3200, 0, 3300, 1500)
 	add_trap(ClamGoal.new()).setup(Rect2(2752, 700, 348, 60), Rect2(2700, 700, 52, 60), 1.25)
+
+
+func hint_for(info: Dictionary) -> Array:
+	if info.cause == "ハマグリ":
+		return ["clam", "指を大きく引いて全速に。まっすぐ一気に、おしりまで入ろう"]
+	return ["fall", "首を伸ばせるのは4節まで。体がプルプルしたら、それ以上は届かない"]

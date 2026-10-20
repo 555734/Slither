@@ -13,12 +13,12 @@ func build() -> void:
 	block(0, 1000, 700, 1700)
 	# #01 定員オーバー橋
 	sign_at(620, 1000, "定員 5ふし", 120)
-	add_trap(PlankBridge.new()).setup(self, Rect2(700, 1000, 154, 12), 5)
+	add_trap(PlankBridge.new()).setup(self, Rect2(700, 1000, 143, 12), 5)
 	block(706, 1012, 712, 1280, Solid.Mat.GLASS)
-	block(842, 1012, 848, 1280, Solid.Mat.GLASS)
-	add_trap(Spikes.new()).setup(Rect2(700, 1280, 154, 20))
-	block(700, 1300, 854, 1700)
-	block(854, 1000, 1500, 1700)
+	block(831, 1012, 837, 1280, Solid.Mat.GLASS)
+	add_trap(Spikes.new()).setup(Rect2(700, 1280, 143, 20))
+	block(700, 1300, 843, 1700)
+	block(843, 1000, 1500, 1700)
 	add_trap(Checkpoint.new()).setup(Rect2(1000, 880, 60, 120), Vector2(1300, 988))
 	# #07 書き割り床（上に、つかまって渡れる枝）
 	add_trap(FakeFloor.new()).setup(Rect2(1500, 1000, 132, 260))
@@ -42,3 +42,12 @@ func build() -> void:
 	block(2440, 600, 3400, 1050)
 	block(3290, 1050, 3400, 1122)
 	add_trap(BurrowGoal.new()).setup(Rect2(2900, 1050, 390, 72))
+
+
+func hint_for(info: Dictionary) -> Array:
+	var x: float = info.pos.x
+	if x < 900.0:
+		return ["plank", "板に乗る節を5つ以下に。指を小さく引いて（低速）、板の手前で頭を斜め上に持ち上げて飛び越そう"]
+	if x < 1800.0:
+		return ["fake", "草の色が少し違う床は絵。上の枝の下側につかまって渡ろう"]
+	return ["shaft", "横向きのまま落ちれば、細い穴の壁に突っ張って止まる"]
